@@ -107,7 +107,6 @@ const Explore = () => {
 
           {/* Large Image Container */}
           <div className="max-w-full max-h-full flex items-center justify-center relative" onClick={(e) => e.stopPropagation()}>
-            {/* 🔒 पॉपअप में भी सिक्योर इमेज और वॉटरमार्क शील्ड */}
             <div className="relative">
               <img 
                 src={selectedImage} 
@@ -182,7 +181,7 @@ const Explore = () => {
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-700 select-none pointer-events-none" 
                     />
                     
-                    {/* 🔒 फ्रंटएंड वॉटरमार्क शील्ड - जो हर फोटो के ऊपर तिरछा "MACROVERSE" लिख देगी */}
+                    {/* 🔒 फ्रंटएंड वॉटरमार्क शील्ड */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10 opacity-25 group-hover:opacity-10 transition duration-300">
                       <span className="text-white font-black text-xl tracking-widest uppercase border-2 border-white/40 px-3 py-1.5 rotate-12 bg-slate-950/10 backdrop-blur-[0.5px]">
                         MACROVERSE
@@ -190,14 +189,14 @@ const Explore = () => {
                     </div>
                     
                     {/* HINT OVERLAY */}
-                    <div className="absolute top-3 left-3 bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-[10px] text-slate-400 font-bold opacity-0 group-hover:opacity-100 transition duration-300 pointer-events-none flex items-center gap-1 z-20">
+                    <div className="absolute top-3 left-3 bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-[10px] text-slate-400 font-bold opacity-0 md:group-hover:opacity-100 transition duration-300 pointer-events-none flex items-center gap-1 z-20">
                       <Maximize2 size={10} className="text-indigo-400" /> Click to view full image
                     </div>
 
-                    {/* 🎯 OVERLAY LAYER: बड़ी इमेज ओपन करेगा */}
+                    {/* 🎯 OVERLAY LAYER: Mobile par hamesha dikhega (opacity-100), Desktop par sirf hover par (md:opacity-0 md:group-hover:opacity-100) */}
                     <div 
                       onClick={() => setSelectedImage(photo.imageUrl)} 
-                      className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent opacity-0 group-hover:opacity-100 transition duration-300 flex flex-col justify-between p-4 cursor-zoom-in z-20"
+                      className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition duration-300 flex flex-col justify-between p-3.5 cursor-zoom-in z-20"
                     >
                       <div className="flex justify-end items-center w-full">
                         <button 
@@ -205,8 +204,8 @@ const Explore = () => {
                             e.stopPropagation(); 
                             handleLikeToggle(photo._id);
                           }}
-                          className={`border p-2 rounded-xl transition duration-300 cursor-pointer shadow-lg ${
-                            isLiked ? 'bg-rose-600/20 border-rose-500 text-rose-500 scale-110' : 'bg-slate-950 border-slate-800 text-slate-300'
+                          className={`border p-2 rounded-xl transition duration-300 cursor-pointer shadow-lg active:scale-95 ${
+                            isLiked ? 'bg-rose-600/30 border-rose-500 text-rose-500 scale-105' : 'bg-slate-950/90 border-slate-800 text-slate-300'
                           }`}
                         >
                           <Heart size={14} fill={isLiked ? "currentColor" : "none"} />
@@ -214,8 +213,8 @@ const Explore = () => {
                       </div>
 
                       <div className="flex justify-between items-center gap-2">
-                        <span className="text-xs bg-slate-950 border border-slate-800 px-2.5 py-1.5 rounded-lg text-slate-200 flex items-center gap-1 font-bold">
-                          <Eye size={12} className="text-indigo-400" /> {photo.views || 0} views
+                        <span className="text-xs bg-slate-950/90 border border-slate-800 px-2.5 py-1.5 rounded-lg text-slate-200 flex items-center gap-1 font-bold">
+                          <Eye size={12} className="text-indigo-400" /> {photo.views || 0}
                         </span>
                         
                         <button 
@@ -235,9 +234,9 @@ const Explore = () => {
                               showPremiumToast(err.response?.data?.message || "❌ Failed to add to cart");
                             }
                           }}
-                          className="bg-indigo-600 text-white font-bold py-2.5 px-3 rounded-xl text-center text-xs shadow-lg hover:bg-indigo-500 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                          className="bg-indigo-600 text-white font-bold py-2 px-3 rounded-xl text-center text-xs shadow-lg hover:bg-indigo-500 active:scale-95 transition flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          <ShoppingCart size={12} /> Add to Cart
+                          <ShoppingCart size={13} /> Add to Cart
                         </button>
                       </div>
                     </div>
