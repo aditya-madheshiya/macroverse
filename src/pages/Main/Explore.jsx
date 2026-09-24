@@ -111,7 +111,7 @@ const Explore = () => {
               <img 
                 src={selectedImage} 
                 alt="Full Macro Asset" 
-                className="max-w-full max-h-[85vh] object-contain rounded-2xl border border-slate-900 shadow-2xl select-none pointer-events-none"
+                className="max-w-full max-h-[85vh] object-contain rounded-2xl border border-slate-900 shadow-2xl select-none pointer-events-none" 
               />
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-10 opacity-25">
                 <span className="text-white font-black text-3xl md:text-5xl tracking-widest uppercase border-4 border-white/35 px-6 py-3 rotate-12 bg-slate-950/20 backdrop-blur-[1px]">
@@ -246,7 +246,10 @@ const Explore = () => {
                     <div className="flex justify-between items-start gap-2">
                       <div className="space-y-0.5 truncate">
                         <h3 className="font-bold text-white text-sm tracking-wide truncate">{photo.title}</h3>
-                        <p className="text-[11px] text-slate-400 font-semibold">Asset Verified</p>
+                        {/* ⚡ Full Name display */}
+                        <p className="text-[11px] text-indigo-400 font-semibold truncate capitalize">
+                          By {photo.uploadedBy?.fullName || photo.uploadedBy?.name || (photo.uploadedBy?.firstName ? `${photo.uploadedBy.firstName} ${photo.uploadedBy.lastName || ''}`.trim() : "Verified Creator")}
+                        </p>
                       </div>
                       <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20">
                         {photo.price}
