@@ -17,6 +17,33 @@ const Explore = () => {
   // 🔍 FULL IMAGE MODAL STATES
   const [selectedImage, setSelectedImage] = useState(null);
 
+  // 📱 BACK BUTTON FIX: Phone ka back button dabane par page back na ho, bas modal close ho
+  useEffect(() => {
+    if (selectedImage) {
+      window.history.pushState({ modalOpen: true }, '');
+
+      const handleBackButton = () => {
+        setSelectedImage(null);
+      };
+
+      window.addEventListener('popstate', handleBackButton);
+
+      return () => {
+        window.removeEventListener('popstate', handleBackButton);
+      };
+    }
+  }, [selectedImage]);
+
+  // Safe close function (X button ya backdrop tap ke liye)
+  const handleCloseModal = () => {
+    if (selectedImage) {
+      setSelectedImage(null);
+      if (window.history.state?.modalOpen) {
+        window.history.back();
+      }
+    }
+  };
+
   useEffect(() => {
     const fetchLivePhotosAndUserData = async () => {
       try {
@@ -132,11 +159,11 @@ const Explore = () => {
       {selectedImage && (
         <div 
           className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-10 cursor-zoom-out"
-          onClick={() => setSelectedImage(null)}
+          onClick={handleCloseModal}
         >
           {/* Close Button */}
           <button 
-            onClick={() => setSelectedImage(null)}
+            onClick={handleCloseModal}
             className="absolute top-5 right-5 text-slate-400 hover:text-white bg-slate-900/60 p-3 rounded-full border border-slate-800 transition cursor-pointer z-50"
           >
             <X size={22} />
@@ -269,7 +296,7 @@ const Explore = () => {
                             onClick={(e) => {
                               e.stopPropagation();
                               showPremiumToast("⚠️ यह एसेट आपके पास पहले से अनलॉक है!");
-                            }}
+                            }} 
                             className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold py-2 px-3 rounded-xl text-center text-xs shadow-lg flex items-center justify-center gap-1.5 cursor-default"
                           >
                             <Check size={13} className="stroke-[3]" /> Purchased
@@ -279,7 +306,7 @@ const Explore = () => {
                             onClick={(e) => {
                               e.stopPropagation(); 
                               handleAddToCart(photo._id, isPurchased);
-                            }}
+                            }} 
                             className="bg-indigo-600 text-white font-bold py-2 px-3 rounded-xl text-center text-xs shadow-lg hover:bg-indigo-500 active:scale-95 transition flex items-center justify-center gap-1.5 cursor-pointer"
                           >
                             <ShoppingCart size={13} /> Add to Cart
