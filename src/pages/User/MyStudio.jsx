@@ -1,5 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Trash2, Loader2, ImagePlus, Eye, ShoppingCart, DollarSign, Image, Save, ShieldCheck, User, CreditCard } from 'lucide-react';
+import { 
+  Trash2, 
+  Loader2, 
+  ImagePlus, 
+  Eye, 
+  ShoppingCart, 
+  DollarSign, 
+  Image, 
+  Save, 
+  ShieldCheck, 
+  User, 
+  CreditCard,
+  Send,
+  Lock,
+  CheckCircle2,
+  AlertCircle,
+  Clock,
+  CheckCheck
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
 import API from '../../api/axiosInstance';
 
@@ -8,62 +26,130 @@ const MyStudio = () => {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState('');
 
-  // 🖼️ तस्वीरें स्टोर करने की स्टेट (फोटोग्राफर के लिए उसकी खुद की, एडमिन के लिए सबकी)
+  // 🖼️ तस्वीरें स्टोर करने की स्टेट
   const [myPhotos, setMyPhotos] = useState([]);
 
-  // 📸 फोटोग्राफर (वेंडर) अर्निंग स्टेट्स
-  const [photographerData, setPhotographerData] = useState({ totalSoldPhotos: 0, netEarnings: '₹0.00', soldPhotosList: [] });
+  // 📸 फोटोग्राफर (वेंडर) अर्निंग स्टेट्स (पुरानी शुद्ध कमाई)
+  const [photographerData, setPhotographerData] = useState({ totalSoldPhotos: 0, netEarnings: '₹0.00', grossSales: '₹0.00', soldPhotosList: [] });
   const [upiId, setUpiId] = useState('');
+  
+  // 💳 3-वे वॉलेट लाइव स्टेट्स
+  const [walletData, setWalletData] = useState({
+    availableBalance: null,
+    pendingAmount: '0.00',
+    paidOutAmount: '0.00'
+  });
+
+  // 💸 विथड्रॉ स्टेट्स
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [isSubmittingWithdraw, setIsSubmittingWithdraw] = useState(false);
+  const [payoutMsg, setPayoutMsg] = useState({ type: '', text: '' });
 
   // 👑 एडमिन स्टेट्स (पेआउट मैट्रिक्स)
   const [adminReport, setAdminReport] = useState([]);
 
-  useEffect(() => {
-    const userRole = localStorage.getItem('role') || 'user';
-    setRole(userRole);
+  const fetchAllStudioData = async () => {
+    try {
+      setLoading(true);
+      const userRole = localStorage.getItem('role') || 'user';
+      setRole(userRole);
+      
+      if (userRole === 'admin') {
+        const payoutRes = await API.get('/orders/admin-payouts-matrix');
+        if (payoutRes.data?.success) setAdminReport(payoutRes.data.payoutReport || []);
 
-    const fetchAllStudioData = async () => {
-      try {
-        setLoading(true);
-        
-        if (userRole === 'admin') {
-          // 👑 1. एडमिन के लिए: पेआउट मैट्रिक्स रिपोर्ट लाएं
-          const payoutRes = await API.get('/orders/admin-payouts-matrix');
-          if (payoutRes.data.success) setAdminReport(payoutRes.data.payoutReport);
+        const photosRes = await API.get('/users/my-uploads');
+        setMyPhotos(photosRes.data || []);
+      } else {
+        // 📸 1. अपलोड की हुई तस्वीरें लाएं
+        const photosRes = await API.get('/users/my-uploads');
+        setMyPhotos(photosRes.data || []);
 
-          // 👑 2. एडमिन के लिए: मार्केटप्लेस की सभी तस्वीरें लाएं ताकि वो डिलीट कर सके
-          const photosRes = await API.get('/users/my-uploads');
-          setMyPhotos(photosRes.data || []);
-        } else {
-          // 📸 फोटोग्राफर के लिए: 1. उसकी खुद की अपलोड की हुई तस्वीरें लाएं
-          const photosRes = await API.get('/users/my-uploads');
-          setMyPhotos(photosRes.data || []);
+        // 📸 2. पुरानी लाइव कमाई फेच करें (/orders/photographer-dashboard और /users/creator-sales दोनों चेक)
+        let loadedNetEarnings = 0;
+        let loadedSoldPhotos = 0;
 
-          // 📸 2. उसकी बिकी हुई तस्वीरों का अर्निंग डेटा लाएं
+        try {
           const earningsRes = await API.get('/orders/photographer-dashboard');
-          if (earningsRes.data.success) setPhotographerData(earningsRes.data);
-
-          // 📸 3. यूज़र की वर्तमान UPI ID लोड करें
-          const profileRes = await API.get('/users/profile'); 
-          setUpiId(profileRes.data.upiId || '');
+          if (earningsRes.data?.success) {
+            setPhotographerData(earningsRes.data);
+            loadedNetEarnings = parseFloat(String(earningsRes.data.netEarnings || '0').replace(/[^0-9.]/g, '')) || 0;
+            loadedSoldPhotos = Number(earningsRes.data.totalSoldPhotos) || 0;
+          }
+        } catch (dashErr) {
+          console.warn("photographer-dashboard error, trying creator-sales fallback");
         }
-      } catch (err) {
-        console.error("Studio fetch error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
 
+        // अगर डैशबोर्ड से 0 मिला तो creator-sales से क्रॉस-चेक करें
+        if (loadedNetEarnings === 0) {
+          try {
+            const salesRes = await API.get('/users/creator-sales');
+            const gross = parseFloat(String(salesRes.data?.totalEarned || '0').replace(/[^0-9.]/g, '')) || 0;
+            const net80 = gross * 0.80;
+            const count = Number(salesRes.data?.soldItemsCount) || 0;
+
+            if (net80 > 0) {
+              loadedNetEarnings = net80;
+              loadedSoldPhotos = count;
+              setPhotographerData({
+                totalSoldPhotos: count,
+                grossSales: `₹${gross.toFixed(2)}`,
+                netEarnings: `₹${net80.toFixed(2)}`,
+                soldPhotosList: salesRes.data?.salesLog || []
+              });
+            }
+          } catch (salesErr) {
+            console.error("Sales fetch error:", salesErr);
+          }
+        }
+
+        // 📸 3. नया वॉलेट डेटा लाएं (अगर पेंडिंग या पेड है)
+        try {
+          const walletRes = await API.get('/orders/payout/my-wallet');
+          if (walletRes.data?.success) {
+            setWalletData({
+              availableBalance: walletRes.data.availableBalance,
+              pendingAmount: walletRes.data.pendingAmount || '0.00',
+              paidOutAmount: walletRes.data.paidOutAmount || '0.00'
+            });
+          }
+        } catch (wErr) {
+          console.warn("Wallet route not yet initialized, using legacy earnings");
+        }
+
+        // 📸 4. UPI ID लोड करें
+        const profileRes = await API.get('/users/profile'); 
+        if (profileRes.data?.upiId) {
+          setUpiId(profileRes.data.upiId);
+        }
+      }
+    } catch (err) {
+      console.error("Studio fetch error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchAllStudioData();
   }, []);
 
-  // 🗑️ फोटो डिलीट करने का लाइव फंक्शन (मालिक या एडमिन दोनों के लिए वर्किंग)
+  // 💰 सटीक उपलब्ध कमाई (अगर वॉलेट ने वैल्यू नहीं दी तो पुरानी नेट कमाई दिखेगी)
+  const legacyNetNum = parseFloat(String(photographerData.netEarnings || '0').replace(/[^0-9.]/g, '')) || 0;
+  
+  const currentAvailable = walletData.availableBalance !== null && Number(walletData.availableBalance) > 0
+    ? parseFloat(walletData.availableBalance)
+    : legacyNetNum;
+
+  const isEligibleForPayout = currentAvailable >= 100;
+  const progressPercent = Math.min(100, (currentAvailable / 100) * 100);
+
+  // 🗑️ फोटो डिलीट करने का फंक्शन
   const handleDeleteAsset = async (photoId) => {
     if (!window.confirm("क्या आप वाकई इस तस्वीर को मार्केटप्लेस से हमेशा के लिए डिलीट करना चाहते हैं?")) return;
 
     try {
       await API.delete(`/users/photos/${photoId}`);
-      // बिना पेज रिफ्रेश किए स्क्रीन से हटाओ
       setMyPhotos(prev => prev.filter(p => p._id !== photoId));
       setToast('🔥 Asset successfully deleted!');
       setTimeout(() => setToast(''), 3000);
@@ -72,13 +158,75 @@ const MyStudio = () => {
     }
   };
 
-  // 💳 फोटोग्राफर द्वारा अपनी UPI ID अपडेट करने का हैंडलर
+  // 💳 UPI ID अपडेट करने का हैंडलर
   const handleUpdateUpi = async () => {
+    if (!upiId || !upiId.includes('@')) {
+      alert("कृपया एक वैध UPI ID दर्ज करें (उदा. user@okhdfcbank)");
+      return;
+    }
+
     try {
       const res = await API.put('/orders/update-upi', { upiId });
-      alert(res.data.message || "UPI ID सुरक्षित कर ली गई है!");
+      alert(res.data?.message || "UPI ID सुरक्षित कर ली गई है!");
     } catch (err) {
       alert(err.response?.data?.message || "UPI ID अपडेट करने में विफल");
+    }
+  };
+
+  // 💸 विथड्रॉ रिक्वेस्ट भेजने का हैंडलर
+  const handleRequestPayout = async (e) => {
+    e.preventDefault();
+    setPayoutMsg({ type: '', text: '' });
+
+    const reqAmt = parseFloat(withdrawAmount);
+
+    if (currentAvailable < 100) {
+      setPayoutMsg({ type: 'error', text: 'न्यूनतम निकासी सीमा ₹100 है। आपका उपलब्ध बैलेंस अभी कम है।' });
+      return;
+    }
+
+    if (!reqAmt || reqAmt < 100) {
+      setPayoutMsg({ type: 'error', text: 'कम से कम ₹100 निकालने की रिक्वेस्ट दर्ज करें।' });
+      return;
+    }
+
+    if (reqAmt > currentAvailable) {
+      setPayoutMsg({ type: 'error', text: `आप उपलब्ध शुद्ध कमाई (₹${currentAvailable.toFixed(2)}) से अधिक नहीं निकाल सकते।` });
+      return;
+    }
+
+    if (!upiId || !upiId.includes('@')) {
+      setPayoutMsg({ type: 'error', text: 'कृपया सही UPI ID डालें ताकि एडमिन पैसा भेज सके।' });
+      return;
+    }
+
+    try {
+      setIsSubmittingWithdraw(true);
+
+      try {
+        await API.put('/orders/update-upi', { upiId });
+      } catch (upiErr) {
+        console.warn("UPI save sync note:", upiErr);
+      }
+
+      const res = await API.post('/orders/payout/request', {
+        amount: reqAmt,
+        upiId: upiId.trim()
+      });
+
+      setPayoutMsg({
+        type: 'success',
+        text: res.data?.message || `🎉 ₹${reqAmt.toFixed(2)} की विथड्रॉ रिक्वेस्ट दर्ज कर दी गई है!`
+      });
+      setWithdrawAmount('');
+      fetchAllStudioData();
+    } catch (err) {
+      setPayoutMsg({
+        type: 'error',
+        text: err.response?.data?.message || 'विथड्रॉ रिक्वेस्ट दर्ज करने में असमर्थ।'
+      });
+    } finally {
+      setIsSubmittingWithdraw(false);
     }
   };
 
@@ -100,7 +248,7 @@ const MyStudio = () => {
       )}
 
       {/* =========================================================================
-          👑 SECTION 1: ADMIN CONTROL TOP BANNER (केवल एडमिन को दिखेगा)
+          👑 SECTION 1: ADMIN CONTROL TOP BANNER
           ========================================================================= */}
       {role === 'admin' && (
         <div className="space-y-6 border-b border-slate-900 pb-8">
@@ -141,12 +289,12 @@ const MyStudio = () => {
                       </td>
                       <td className="p-4 font-mono text-slate-400">
                         <span className="flex items-center gap-1">
-                          <CreditCard size={12} className="text-indigo-400" /> {vendor.upiId}
+                          <CreditCard size={12} className="text-indigo-400" /> {vendor.upiId || 'Not Linked'}
                         </span>
                       </td>
                       <td className="p-4 text-center font-bold text-indigo-400">{vendor.totalPhotosSold} Pcs</td>
-                      <td className="p-4 text-right text-slate-400 font-bold">₹{vendor.totalSalesAmount.toFixed(2)}</td>
-                      <td className="p-4 text-right font-black text-emerald-400 text-sm">₹{vendor.amountToPay.toFixed(2)}</td>
+                      <td className="p-4 text-right text-slate-400 font-bold">₹{vendor.totalSalesAmount?.toFixed(2)}</td>
+                      <td className="p-4 text-right font-black text-emerald-400 text-sm">₹{vendor.amountToPay?.toFixed(2)}</td>
                     </tr>
                   ))
                 )}
@@ -157,7 +305,7 @@ const MyStudio = () => {
       )}
 
       {/* =========================================================================
-          📸 SECTION 2: PHOTOGRAPHER STATS BANNER (केवल नॉर्मल यूजर को दिखेगा)
+          📸 SECTION 2: PHOTOGRAPHER STATS + 3-CARD WALLET (GUARANTEED SYNC)
           ========================================================================= */}
       {role !== 'admin' && (
         <div className="space-y-6">
@@ -171,46 +319,178 @@ const MyStudio = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <div className="bg-slate-900/40 border border-slate-900 p-6 rounded-2xl flex items-center justify-between">
+          {/* 📊 3-वे वॉलेट कार्ड्स (Available, Requested In-Review, Settled) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* कार्ड 1: उपलब्ध बैलेंस (पुरानी कमाई गारंटीड लोड होगी) */}
+            <div className="bg-slate-900/40 border border-slate-900 p-5 rounded-2xl flex items-center justify-between">
               <div>
-                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Net Earnings (After 20% Platform Fee)</p>
-                <h3 className="text-2xl font-black text-emerald-400 mt-1">{photographerData.netEarnings}</h3>
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Available to Withdraw</p>
+                <h3 className="text-2xl font-black text-emerald-400 mt-1">₹{currentAvailable.toFixed(2)}</h3>
+                <span className="text-[10px] text-slate-500 font-semibold mt-1 block">
+                  {isEligibleForPayout ? '✅ Ready to Withdraw' : '⏳ Min. ₹100 required'}
+                </span>
               </div>
-              <DollarSign size={32} className="text-emerald-500 bg-emerald-500/10 p-1.5 rounded-xl" />
+              <DollarSign size={28} className="text-emerald-500 bg-emerald-500/10 p-1.5 rounded-xl" />
             </div>
-            <div className="bg-slate-900/40 border border-slate-900 p-6 rounded-2xl flex items-center justify-between">
+
+            {/* कार्ड 2: रिक्वेस्टेड बैलेंस (In-Review) */}
+            <div className="bg-slate-900/40 border border-slate-900 p-5 rounded-2xl flex items-center justify-between">
               <div>
-                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Total Pictures Sold</p>
-                <h3 className="text-2xl font-black text-indigo-400 mt-1">{photographerData.totalSoldPhotos} Units</h3>
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Requested (In Review)</p>
+                <h3 className="text-2xl font-black text-amber-400 mt-1">₹{walletData.pendingAmount}</h3>
+                <span className="text-[10px] text-slate-500 font-semibold mt-1 block">
+                  {parseFloat(walletData.pendingAmount) > 0 ? 'Admin processing payout' : 'No active requests'}
+                </span>
               </div>
-              <Image size={32} className="text-indigo-500 bg-indigo-500/10 p-1.5 rounded-xl" />
+              <Clock size={28} className="text-amber-500 bg-amber-500/10 p-1.5 rounded-xl" />
+            </div>
+
+            {/* कार्ड 3: कुल पेड बैलेंस */}
+            <div className="bg-slate-900/40 border border-slate-900 p-5 rounded-2xl flex items-center justify-between">
+              <div>
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-wider">Total Settled / Paid</p>
+                <h3 className="text-2xl font-black text-indigo-400 mt-1">₹{walletData.paidOutAmount}</h3>
+                <span className="text-[10px] text-slate-500 font-semibold mt-1 block">
+                  {photographerData.totalSoldPhotos} Items Licensed
+                </span>
+              </div>
+              <CheckCheck size={28} className="text-indigo-500 bg-indigo-500/10 p-1.5 rounded-xl" />
             </div>
           </div>
 
-          <div className="bg-slate-900/40 border border-slate-900 p-6 rounded-2xl space-y-4 max-w-md">
-            <div>
-              <h4 className="font-bold text-sm text-slate-300">Payout Settlement Account</h4>
-              <p className="text-[10px] text-slate-500 mt-0.5">इसी UPI ID पर आपका कमीशन काटकर सीधे पेमेंट सेंड किया जाएगा।</p>
+          {/* 💸 विथड्रॉ और UPI सेटलमेंट फॉर्म */}
+          <div className="bg-slate-900/40 border border-slate-900 p-6 rounded-2xl space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-900/80 pb-4">
+              <div>
+                <h4 className="font-bold text-sm text-white flex items-center gap-2">
+                  <CreditCard size={16} className="text-indigo-400" />
+                  Payout Settlement & Withdrawal Terminal
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  अपनी उपलब्ध कमाई को सीधे अपने बैंक/UPI में निकालने के लिए न्यूनतम राशि ₹100.00 है।
+                </p>
+              </div>
+
+              <div className="self-start sm:self-auto">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-bold uppercase ${
+                  isEligibleForPayout 
+                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                }`}>
+                  {isEligibleForPayout ? <CheckCircle2 size={13} /> : <Lock size={13} />}
+                  {isEligibleForPayout ? 'Ready to Withdraw' : 'Locked (< ₹100)'}
+                </span>
+              </div>
             </div>
-            <div className="flex gap-3">
-              <input 
-                type="text" 
-                value={upiId} 
-                onChange={(e) => setUpiId(e.target.value)}
-                placeholder="example@upi"
-                className="bg-slate-950 border border-slate-900 rounded-xl px-4 py-2 text-xs w-full focus:outline-none focus:border-indigo-500 text-white"
-              />
-              <button onClick={handleUpdateUpi} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs px-4 py-2 rounded-xl transition flex items-center gap-1.5 cursor-pointer flex-shrink-0">
-                <Save size={14} /> Save
+
+            {/* प्रोग्रेस बार */}
+            {!isEligibleForPayout && (
+              <div className="space-y-2 bg-slate-950/60 p-4 rounded-xl border border-slate-900">
+                <div className="flex justify-between text-[11px] font-bold text-slate-400">
+                  <span>Threshold Progress</span>
+                  <span>₹{currentAvailable.toFixed(2)} / ₹100.00</span>
+                </div>
+                <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className="bg-indigo-500 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${progressPercent}%` }}
+                  ></div>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  विथड्रॉ रिक्वेस्ट अनलॉक करने के लिए ₹{(100 - currentAvailable).toFixed(2)} की और बिक्री चाहिए।
+                </p>
+              </div>
+            )}
+
+            {/* अलर्ट मैसेज */}
+            {payoutMsg.text && (
+              <div className={`p-3 rounded-xl text-xs font-bold ${
+                payoutMsg.type === 'error' 
+                  ? 'bg-rose-500/10 border border-rose-500/20 text-rose-400' 
+                  : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+              }`}>
+                {payoutMsg.text}
+              </div>
+            )}
+
+            {/* फॉर्म */}
+            <form onSubmit={handleRequestPayout} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1.5">
+                    UPI Wallet ID (VPA)
+                  </label>
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={upiId} 
+                      onChange={(e) => setUpiId(e.target.value)} 
+                      placeholder="username@okhdfcbank" 
+                      required
+                      className="bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs w-full focus:outline-none focus:border-indigo-500 text-white font-mono"
+                    />
+                    <button 
+                      type="button" 
+                      onClick={handleUpdateUpi} 
+                      title="Save UPI ID"
+                      className="bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-300 font-bold px-3 py-2.5 rounded-xl text-xs transition cursor-pointer flex items-center gap-1"
+                    >
+                      <Save size={13} />
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-slate-400 block mb-1.5">
+                    Withdrawal Amount (₹)
+                  </label>
+                  <input 
+                    type="number"
+                    min="100"
+                    max={currentAvailable}
+                    disabled={!isEligibleForPayout}
+                    value={withdrawAmount} 
+                    onChange={(e) => setWithdrawAmount(e.target.value)} 
+                    placeholder={isEligibleForPayout ? "Min. 100" : "Locked (Min ₹100)"} 
+                    required
+                    className="bg-slate-950 border border-slate-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl px-4 py-2.5 text-xs w-full focus:outline-none focus:border-indigo-500 text-white"
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                disabled={!isEligibleForPayout || isSubmittingWithdraw}
+                className={`w-full sm:w-auto font-bold px-6 py-2.5 rounded-xl text-xs flex items-center justify-center gap-2 transition shadow-lg ${
+                  isEligibleForPayout 
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer active:scale-95' 
+                    : 'bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed'
+                }`}
+              >
+                {isSubmittingWithdraw ? (
+                  <>
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Processing Payout Request...</span>
+                  </>
+                ) : isEligibleForPayout ? (
+                  <>
+                    <Send size={13} />
+                    <span>Request Payout via UPI</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock size={13} />
+                    <span>Minimum ₹100 Required to Withdraw</span>
+                  </>
+                )}
               </button>
-            </div>
+            </form>
           </div>
         </div>
       )}
 
       {/* =========================================================================
-          🖼️ SECTION 3: THE LIVE GALLERY MATRIX (एडमिन को सबकी फ़ोटो, यूज़र को खुद की दिखेगी)
+          🖼️ SECTION 3: THE LIVE GALLERY MATRIX
           ========================================================================= */}
       <div className="space-y-4">
         <h3 className="text-lg font-black text-white">
@@ -248,7 +528,7 @@ const MyStudio = () => {
                     </span>
                   </div>
 
-                  {/* 🗑️ डिलीट बटन (मालिक या एडमिन दोनों के लिए एक्टिव) */}
+                  {/* 🗑️ डिलीट बटन */}
                   <div className="pt-2 border-t border-slate-900/40 flex justify-end">
                     <button 
                       onClick={() => handleDeleteAsset(photo._id)}

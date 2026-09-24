@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 // Layout & Common Components (Check Caps and spellings carefully)
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-
+import ScrollToTop from './components/ScrollToTop';
 // 1. Main Pages
 import Home from './pages/Main/Home';
 import Explore from './pages/Main/Explore';
@@ -14,7 +14,6 @@ import PhotoDetails from './pages/Main/PhotoDetails';
 // 2. User Pages
 import Wishlist from './pages/User/Wishlist';
 import Cart from './pages/User/Cart';
-import Checkout from './pages/User/Checkout';
 import UserDashboard from './pages/User/UserDashboard';
 import MyDownloads from './pages/User/MyDownloads';
 import MyOrders from './pages/User/MyOrders';
@@ -41,6 +40,7 @@ import UploadPhoto from './pages/User/UploadPhoto';
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 font-sans">
         <Navbar />
         <main className="flex-grow">
@@ -54,7 +54,6 @@ function App() {
             {/* User Routes */}
             <Route path="/wishlist" element={<Wishlist />} />
             <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
             <Route path="/dashboard" element={<UserDashboard />} />
             <Route path="/downloads" element={<MyDownloads />} />
             <Route path="/orders" element={<MyOrders />} />

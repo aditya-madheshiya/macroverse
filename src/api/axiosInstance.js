@@ -8,12 +8,17 @@ const API = axios.create({
   },
 });
 
-// इंटरसेप्टर: हर रिक्वेस्ट के साथ LocalStorage से JWT Token अपने आप भेजने के लिए
+// इंटरसेप्टर: हर रिक्वेस्ट के साथ ताज़ा JWT Token भेजने और टोकन न होने पर हेडर साफ़ करने के लिए
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token) {
+  
+  if (token && token !== 'undefined' && token !== 'null') {
     config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    // 🔒 अगर टोकन नहीं है या यूजर बदल गया है, तो पुराना हेडर हटाएँ
+    delete config.headers.Authorization;
   }
+  
   return config;
 }, (error) => {
   return Promise.reject(error);

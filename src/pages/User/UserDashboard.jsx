@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, User, Heart, Image, Download, ShoppingBag, Settings, LogOut, DollarSign, ShoppingCart, Camera, ShieldAlert } from 'lucide-react';
+import { LayoutDashboard, User, Heart, Image, Download, ShoppingBag, Settings, LogOut, DollarSign, ShoppingCart, Camera, ShieldAlert, TrendingUp } from 'lucide-react';
 import API from '../../api/axiosInstance';
 
 // सभी असली सब-मॉड्यूल्स इम्पोर्ट
@@ -8,8 +8,8 @@ import Wishlist from './Wishlist';
 import MyDownloads from './MyDownloads';
 import MyOrders from './MyOrders';
 import Cart from './Cart';
-import Checkout from './Checkout';
 import MyStudio from './MyStudio'; // यह कंपोनेंट एडमिन होने पर सबको डिलीट करने की अनुमति देता है
+import AdminSalesLog from './AdminSalesLog'; // 👈 एडमिन की खुद की बिक्री देखने के लिए इम्पोर्ट
 
 const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState(() => {
@@ -83,6 +83,13 @@ const UserDashboard = () => {
       shortName: 'Studio', 
       icon: userRole === 'admin' ? <ShieldAlert size={18} className="text-rose-400" /> : <Camera size={18} /> 
     },
+    // 🎯 अगर यूजर एडमिन है तो उसकी खुद की बिकी हुई तस्वीरों का टैब जोड़ें
+    ...(userRole === 'admin' ? [{
+      id: 'mysales',
+      name: 'My Sales Ledger',
+      shortName: 'Sales',
+      icon: <TrendingUp size={18} className="text-emerald-400" />
+    }] : []),
     { id: 'liked', name: 'Liked Photos', shortName: 'Liked', icon: <Heart size={18} /> },
     { id: 'purchased', name: 'Purchased', shortName: 'Purchased', icon: <Image size={18} /> },
     { id: 'downloads', name: 'Downloads', shortName: 'Downloads', icon: <Download size={18} /> },
@@ -210,6 +217,8 @@ const UserDashboard = () => {
 
         {activeTab === 'profile' && <Profile />}
         {activeTab === 'studio' && <MyStudio />}
+        {/* 🎯 Admin Sales Log Tab Content */}
+        {activeTab === 'mysales' && userRole === 'admin' && <AdminSalesLog />}
         {activeTab === 'liked' && <Wishlist type="liked" />}
         {activeTab === 'purchased' && <Wishlist type="purchased" />} 
         {activeTab === 'downloads' && <MyDownloads />}

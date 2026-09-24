@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Flame, ArrowRight, Download, Heart, Eye, Sparkles } from 'lucide-react';
+import { Flame, Download, Eye, Sparkles, Compass, ArrowUpRight, Upload } from 'lucide-react';
 import API from '../../api/axiosInstance';
 
 const Home = () => {
@@ -43,50 +43,59 @@ const Home = () => {
             Discover, buy, and sell ultra high-resolution, hand-curated stock photos. Built explicitly for elite creators and developers.
           </p>
           
-          {/* Search Bar */}
-          <div className="max-w-2xl mx-auto flex items-center bg-slate-900/80 border border-slate-800 rounded-2xl p-2.5 backdrop-blur-lg focus-within:border-indigo-500 transition duration-300">
-            <Search className="text-slate-500 ml-4 flex-shrink-0" size={24} />
-            <input type="text" placeholder="Search assets (e.g. Cinematic Landscapes)..." className="w-full px-4 py-3 bg-transparent outline-none text-white font-medium text-base placeholder-slate-500" />
-            <button className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-8 py-3 rounded-xl transition cursor-pointer">Search</button>
-          </div>
-        </div>
-      </section>
+          {/* 🔮 DUAL CTAS: Explore Gallery & Sell Artwork */}
+          <div className="pt-4 flex flex-col sm:flex-row justify-center items-center gap-4">
+            
+            {/* Primary Action: Enter Microverse (Explore) */}
+            <Link
+              to="/explore"
+              className="w-full sm:w-auto relative group p-[2px] rounded-3xl overflow-hidden inline-flex items-center justify-center transition-all duration-500 hover:scale-105 active:scale-95 shadow-[0_0_40px_-10px_rgba(99,102,241,0.5)] hover:shadow-[0_0_50px_0px_rgba(168,85,247,0.7)]"
+            >
+              {/* Rotating Aurora Border */}
+              <span className="absolute inset-[-1000%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,#4f46e5_0%,#a855f7_25%,#ec4899_50%,#06b6d4_75%,#4f46e5_100%)] opacity-80 group-hover:opacity-100 transition-opacity" />
 
-      {/* Grid Gallery Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="flex justify-between items-end mb-12">
-          <div>
-            <div className="flex items-center gap-2 text-amber-500 font-black text-xs uppercase tracking-widest"><Flame size={14} fill="currentColor" /> Curated Gallery</div>
-            <h2 className="text-3xl font-black text-white tracking-tight mt-1">Trending Micro Masterpieces</h2>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="text-center py-10 text-slate-500 font-medium">Syncing with Microverse Core APIs...</div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {trendingPhotos.map((photo) => (
-              <div key={photo.id} className="group bg-slate-900/40 rounded-2xl overflow-hidden border border-slate-900 hover:border-slate-800 transition duration-300">
-                <div className="relative aspect-4/3 overflow-hidden bg-slate-950">
-                  <img src={photo.url} alt={photo.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" />
-                  <div className="absolute inset-0 bg-linear-to-t from-slate-950 via-slate-950/20 to-transparent opacity-0 group-hover:opacity-100 transition duration-300 flex flex-col justify-between p-4">
-                    <span className="text-xs bg-slate-900/80 px-2.5 py-1 rounded-md text-slate-300 w-fit flex items-center gap-1"><Eye size={12} /> {photo.views || '1.2k'}</span>
-                    <Link to={`/photo/${photo.id}`} className="bg-white text-slate-950 font-bold py-2 px-4 rounded-xl text-center text-xs flex items-center justify-center gap-1.5">
-                      <Download size={14} /> View & License
-                    </Link>
-                  </div>
+              {/* Glassmorphic Core */}
+              <div className="w-full relative px-7 py-3.5 rounded-[22px] bg-slate-950/90 backdrop-blur-xl flex items-center justify-center gap-3.5 border border-white/10 group-hover:border-white/20 transition-all duration-300">
+                <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-fuchsia-600 text-white shadow-inner group-hover:rotate-12 transition-transform duration-300">
+                  <Compass size={18} className="animate-spin" style={{ animationDuration: '10s' }} />
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950 animate-pulse" />
                 </div>
-                <div className="p-5 flex justify-between items-center border-t border-slate-900">
-                  <div>
-                    <h3 className="font-bold text-white text-sm truncate max-w-[150px]">{photo.title}</h3>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase mt-0.5">by {photo.author?.name || photo.author}</p>
+                <div className="text-left">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-indigo-300 via-purple-200 to-pink-300">
+                      Enter Microverse
+                    </span>
+                    <Sparkles size={11} className="text-amber-400 animate-bounce" />
                   </div>
-                  <span className="text-sm font-black text-indigo-400 bg-indigo-500/10 px-3 py-1 rounded-lg border border-indigo-500/20">${photo.price}</span>
+                  <p className="text-[10px] font-semibold text-slate-400 -mt-0.5">Explore 4K Macro Live</p>
+                </div>
+                <div className="ml-2 w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 group-hover:text-white group-hover:bg-indigo-600 group-hover:border-indigo-500 transition-all duration-300">
+                  <ArrowUpRight size={16} />
                 </div>
               </div>
-            ))}
+            </Link>
+
+            {/* 🎨 Creator Action: Sell Your Art */}
+            <Link
+              to="/upload"
+              className="w-full sm:w-auto relative group px-7 py-3.5 rounded-3xl bg-slate-900/80 hover:bg-slate-900 border border-slate-800 hover:border-emerald-500/50 backdrop-blur-xl inline-flex items-center justify-center gap-3.5 transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl hover:shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)]"
+            >
+              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-slate-950 transition-all duration-300">
+                <Upload size={18} />
+              </div>
+              <div className="text-left">
+                <span className="text-xs font-black uppercase tracking-wider text-slate-200 group-hover:text-emerald-300 transition-colors block">
+                  Sell Your Art
+                </span>
+              </div>
+              <div className="ml-1 w-8 h-8 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 group-hover:text-emerald-400 group-hover:border-emerald-500/30 transition-all duration-300">
+                <ArrowUpRight size={16} />
+              </div>
+            </Link>
+
           </div>
-        )}
+
+        </div>
       </section>
     </div>
   );

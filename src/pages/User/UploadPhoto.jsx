@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, DollarSign, Tag, Image as ImageIcon, CheckCircle, Camera } from 'lucide-react';
+import { Upload, Tag, Image as ImageIcon, CheckCircle, Camera } from 'lucide-react';
 import API from '../../api/axiosInstance';
 
 const UploadPhoto = () => {
@@ -28,7 +28,7 @@ const UploadPhoto = () => {
     const formData = new FormData();
     formData.append('title', title);
     formData.append('category', category);
-    formData.append('price', `$${price}`);
+    formData.append('price', `₹${price}`);
     formData.append('magnification', magnification);
     formData.append('image', imageFile);
 
@@ -95,6 +95,7 @@ const UploadPhoto = () => {
                 <option>Nature & Botany</option>
                 <option>Insects & Wildlife</option>
                 <option>Textures & Abstract</option>
+                <option>Other</option>
               </select>
             </div>
 
@@ -107,10 +108,10 @@ const UploadPhoto = () => {
             </div>
 
             <div>
-              <label className="text-xs uppercase tracking-wider text-slate-400">Price (USD)</label>
+              <label className="text-xs uppercase tracking-wider text-slate-400">Price (INR)</label>
               <div className="relative flex items-center mt-1">
-                <DollarSign className="absolute left-3 text-slate-500" size={16} />
-                <input type="number" placeholder="25" value={price} onChange={e => setPrice(e.target.value)} className="w-full border border-slate-800 pl-9 pr-4 py-3 rounded-xl bg-slate-950 text-white outline-none focus:border-indigo-500" required />
+                <span className="absolute left-3.5 text-slate-400 font-bold text-base select-none">₹</span>
+                <input type="number" placeholder="250" value={price} onChange={e => setPrice(e.target.value)} className="w-full border border-slate-800 pl-9 pr-4 py-3 rounded-xl bg-slate-950 text-white outline-none focus:border-indigo-500" required />
               </div>
             </div>
           </div>

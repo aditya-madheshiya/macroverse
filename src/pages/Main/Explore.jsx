@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SlidersHorizontal, ArrowUpDown, Heart, Eye, Camera, CheckCircle, X, Maximize2, ShoppingCart } from 'lucide-react';
+import { SlidersHorizontal, ArrowUpDown, Heart, Eye, Camera, CheckCircle, X, Maximize2, ShoppingCart, Check } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import API from '../../api/axiosInstance';
 
@@ -12,21 +12,36 @@ const Explore = () => {
 
   const [toast, setToast] = useState({ show: false, message: '' });
   const [likedPhotoIds, setLikedPhotoIds] = useState([]);
+  const [purchasedPhotoIds, setPurchasedPhotoIds] = useState([]);
 
   // 🔍 FULL IMAGE MODAL STATES
   const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
-    const fetchLivePhotosAndWishlist = async () => {
+    const fetchLivePhotosAndUserData = async () => {
       try {
         const res = await API.get('/photos/explore-live');
-        setExplorePhotos(res.data);
+        setExplorePhotos(res.data || []);
 
         const token = localStorage.getItem('token');
         if (token) {
-          const wishlistRes = await API.get('/users/wishlist');
-          const ids = wishlistRes.data.map(item => item._id);
-          setLikedPhotoIds(ids);
+          // 1. Wishlist fetch karein
+          try {
+            const wishlistRes = await API.get('/users/wishlist');
+            const wishIds = (wishlistRes.data || []).map(item => item._id || item);
+            setLikedPhotoIds(wishIds);
+          } catch (wErr) {
+            console.error("Wishlist fetch error:", wErr);
+          }
+
+          // 2. Purchased items fetch karein
+          try {
+            const profileRes = await API.get('/users/profile');
+            const boughtIds = (profileRes.data?.purchasedPhotos || []).map(item => (item._id || item).toString());
+            setPurchasedPhotoIds(boughtIds);
+          } catch (pErr) {
+            console.error("Purchased items fetch error:", pErr);
+          }
         }
       } catch (err) {
         console.error("Error loading gallery matrix stream", err);
@@ -34,7 +49,7 @@ const Explore = () => {
         setLoading(false);
       }
     };
-    fetchLivePhotosAndWishlist();
+    fetchLivePhotosAndUserData();
   }, []);
 
   const showPremiumToast = (msg) => {
@@ -71,6 +86,28 @@ const Explore = () => {
         console.error("Error adding to wishlist:", err);
         showPremiumToast(err.response?.data?.message || "❌ Server error during bookmark");
       }
+    }
+  };
+
+  const handleAddToCart = async (photoId, isPurchased) => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      showPremiumToast("⚠️ Please login to add items to cart!");
+      return;
+    }
+
+    if (isPurchased) {
+      showPremiumToast("⚠️ यह तस्वीर आप पहले ही खरीद चुके हैं! यह आपके डैशबोर्ड में है।");
+      return;
+    }
+
+    try {
+      const res = await API.post('/users/cart/add', { photoId });
+      if (res.data.success) {
+        showPremiumToast("🛒 Asset added to your marketplace cart!");
+      }
+    } catch (err) {
+      showPremiumToast(err.response?.data?.message || "❌ Failed to add to cart");
     }
   };
 
@@ -168,6 +205,10 @@ const Explore = () => {
           ) : (
             filteredPhotos.map((photo) => {
               const isLiked = likedPhotoIds.includes(photo._id);
+              const isPurchased = purchasedPhotoIds.includes(photo._id?.toString());
+              
+              // 🎯 Rupee Price Safe Formatter
+              const formattedPrice = `₹${parseFloat(String(photo.price || '0').replace(/[^0-9.]/g, '')).toFixed(2)}`;
 
               return (
                 <div key={photo._id} className="group bg-slate-900/30 rounded-3xl overflow-hidden border border-slate-900 hover:border-slate-800 transition duration-300 flex flex-col justify-between shadow-xl">
@@ -186,13 +227,19 @@ const Explore = () => {
                         MACROVERSE
                       </span>
                     </div>
-                    
-                    {/* HINT OVERLAY */}
-                    <div className="absolute top-3 left-3 bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-[10px] text-slate-400 font-bold opacity-0 md:group-hover:opacity-100 transition duration-300 pointer-events-none flex items-center gap-1 z-20">
-                      <Maximize2 size={10} className="text-indigo-400" /> Click to view full image
-                    </div>
 
-                    {/* 🎯 OVERLAY LAYER: Mobile par hamesha dikhega (opacity-100), Desktop par sirf hover par (md:opacity-0 md:group-hover:opacity-100) */}
+                    {/* 🌟 ALREADY PURCHASED BADGE */}
+                    {isPurchased ? (
+                      <div className="absolute top-3 left-3 bg-emerald-500/20 backdrop-blur-md border border-emerald-500/40 px-2.5 py-1 rounded-xl text-[10px] text-emerald-400 font-black flex items-center gap-1 z-30 shadow-lg">
+                        <Check size={12} className="stroke-[3]" /> Owned
+                      </div>
+                    ) : (
+                      <div className="absolute top-3 left-3 bg-slate-950/80 px-2.5 py-1.5 rounded-xl border border-slate-800 text-[10px] text-slate-400 font-bold opacity-0 md:group-hover:opacity-100 transition duration-300 pointer-events-none flex items-center gap-1 z-20">
+                        <Maximize2 size={10} className="text-indigo-400" /> Click to view full image
+                      </div>
+                    )}
+
+                    {/* OVERLAY LAYER */}
                     <div 
                       onClick={() => setSelectedImage(photo.imageUrl)} 
                       className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-950/20 to-transparent opacity-100 md:opacity-0 md:group-hover:opacity-100 transition duration-300 flex flex-col justify-between p-3.5 cursor-zoom-in z-20"
@@ -202,7 +249,7 @@ const Explore = () => {
                           onClick={(e) => {
                             e.stopPropagation(); 
                             handleLikeToggle(photo._id);
-                          }}
+                          }} 
                           className={`border p-2 rounded-xl transition duration-300 cursor-pointer shadow-lg active:scale-95 ${
                             isLiked ? 'bg-rose-600/30 border-rose-500 text-rose-500 scale-105' : 'bg-slate-950/90 border-slate-800 text-slate-300'
                           }`}
@@ -216,27 +263,28 @@ const Explore = () => {
                           <Eye size={12} className="text-indigo-400" /> {photo.views || 0}
                         </span>
                         
-                        <button 
-                          onClick={async (e) => {
-                            e.stopPropagation(); 
-                            const token = localStorage.getItem('token');
-                            if (!token) {
-                              showPremiumToast("⚠️ Please login to add items to cart!");
-                              return;
-                            }
-                            try {
-                              const res = await API.post('/users/cart/add', { photoId: photo._id });
-                              if (res.data.success) {
-                                showPremiumToast("🛒 Asset added to your marketplace cart!");
-                              }
-                            } catch (err) {
-                              showPremiumToast(err.response?.data?.message || "❌ Failed to add to cart");
-                            }
-                          }}
-                          className="bg-indigo-600 text-white font-bold py-2 px-3 rounded-xl text-center text-xs shadow-lg hover:bg-indigo-500 active:scale-95 transition flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          <ShoppingCart size={13} /> Add to Cart
-                        </button>
+                        {/* SMART ACTION BUTTON */}
+                        {isPurchased ? (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              showPremiumToast("⚠️ यह एसेट आपके पास पहले से अनलॉक है!");
+                            }}
+                            className="bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold py-2 px-3 rounded-xl text-center text-xs shadow-lg flex items-center justify-center gap-1.5 cursor-default"
+                          >
+                            <Check size={13} className="stroke-[3]" /> Purchased
+                          </button>
+                        ) : (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation(); 
+                              handleAddToCart(photo._id, isPurchased);
+                            }}
+                            className="bg-indigo-600 text-white font-bold py-2 px-3 rounded-xl text-center text-xs shadow-lg hover:bg-indigo-500 active:scale-95 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <ShoppingCart size={13} /> Add to Cart
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -246,13 +294,17 @@ const Explore = () => {
                     <div className="flex justify-between items-start gap-2">
                       <div className="space-y-0.5 truncate">
                         <h3 className="font-bold text-white text-sm tracking-wide truncate">{photo.title}</h3>
-                        {/* ⚡ Full Name display */}
                         <p className="text-[11px] text-indigo-400 font-semibold truncate capitalize">
                           By {photo.uploadedBy?.fullName || photo.uploadedBy?.name || (photo.uploadedBy?.firstName ? `${photo.uploadedBy.firstName} ${photo.uploadedBy.lastName || ''}`.trim() : "Verified Creator")}
                         </p>
                       </div>
-                      <span className="text-xs font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20">
-                        {photo.price}
+                      {/* 🎯 Guaranteed ₹ Price */}
+                      <span className={`text-xs font-black px-2.5 py-1 rounded-xl border ${
+                        isPurchased 
+                          ? 'text-emerald-300 bg-emerald-500/10 border-emerald-500/30 font-mono' 
+                          : 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+                      }`}>
+                        {isPurchased ? "Licensed" : formattedPrice}
                       </span>
                     </div>
                     <div className="text-[10px] bg-slate-900 border border-slate-800 text-slate-400 px-2.5 py-1.5 rounded-lg font-mono flex items-center gap-1.5 w-max">

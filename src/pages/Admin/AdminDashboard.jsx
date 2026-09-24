@@ -12,7 +12,11 @@ import {
   ShieldAlert,
   Trash2,
   CreditCard,
-  User
+  User,
+  Copy,
+  Send,
+  AlertCircle,
+  Clock
 } from 'lucide-react';
 import API from '../../api/axiosInstance';
 
@@ -31,30 +35,26 @@ const AdminDashboard = () => {
   });
   const [usersList, setUsersList] = useState([]);
   
-  // 💰 नया पेआउट रिपोर्ट स्टेट
+  // 💰 पेआउट रिपोर्ट स्टेट
   const [adminReport, setAdminReport] = useState([]);
+  const [settlingId, setSettlingId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userRole = localStorage.getItem('role');
 
-    console.log("=== ADMIN CORE DEBUGGER ===");
-    console.log("LocalStorage Token:", token ? "FOUND (Valid)" : "NOT FOUND");
-    console.log("LocalStorage Role:", userRole);
-
     if (token && userRole === 'admin') {
       setIsAdmin(true);
       fetchAdminData();
     } else {
-      console.log("Access Denied! Redirecting to /login...");
       setIsAdmin(false);
       setLoading(false);
       navigate('/login'); 
     }
   }, [navigate]);
 
-  // ⚡ डेटाबेस से लाइव डेटा खींचने का फंक्शन (🎯 रेवेन्यू मिसमैच फिक्स)
+  // ⚡ डेटाबेस से लाइव डेटा खींचने का फंक्शन
   const fetchAdminData = async () => {
     try {
       setLoading(true);
@@ -64,30 +64,24 @@ const AdminDashboard = () => {
       
       let liveCalculatedRevenue = 0;
       
-      if (payoutRes.data.success && payoutRes.data.payoutReport) {
+      if (payoutRes.data?.success && payoutRes.data?.payoutReport) {
         const report = payoutRes.data.payoutReport;
         setAdminReport(report);
         
-        // 🎯 महा फिक्स: पुराने फालतू ऑर्डर्स को छोड़ो, सिर्फ लाइव वेंडर्स की कुल सेल्स का टोटल लगाओ
         report.forEach(vendor => {
           liveCalculatedRevenue += vendor.totalSalesAmount || 0;
         });
       }
       
-      setUsersList(usersRes.data);
+      setUsersList(usersRes.data || []);
       
-      // स्टेट्स अपडेट करें और रेवेन्यू को एकदम सटीक लाइव कैलकुलेशन से सेट करें
       setDbStats({
         ...statsRes.data,
-        totalRevenue: `₹${liveCalculatedRevenue.toFixed(2)}` // अब ये बिल्कुल सटीक ₹16.00 या जो बिका है वही दिखाएगा
+        totalRevenue: `₹${liveCalculatedRevenue.toFixed(2)}`
       });
 
     } catch (err) {
       console.error("Admin API Matrix Error:", err);
-      setUsersList([
-        { _id: '1', firstName: 'Rahul', lastName: 'Sharma', email: 'rahul@example.com', createdAt: new Date() },
-        { _id: '2', firstName: 'Amit', lastName: 'Verma', email: 'amit@example.com', createdAt: new Date() }
-      ]);
     } finally {
       setLoading(false);
     }
@@ -103,6 +97,41 @@ const AdminDashboard = () => {
       } catch (err) {
         alert("Operation failed or unauthorized.");
       }
+    }
+  };
+
+  // 📋 UPI ID कॉपी करने का फंक्शन
+  const handleCopyUpi = (upiId) => {
+    if (!upiId) return;
+    navigator.clipboard.writeText(upiId);
+    alert(`UPI ID ${upiId} copied to clipboard!`);
+  };
+
+  // 💸 वेंडर को पैसे भेजने के बाद सेटल करने का फंक्शन
+  const handleSettleVendor = async (vendor) => {
+    if (vendor.amountToPay < 100) {
+      alert("⚠️ मिनिमम निकासी राशि ₹100 होनी चाहिए। यह वेंडर अभी पेआउट के लिए एलिजिबल नहीं है।");
+      return;
+    }
+
+    const utr = window.prompt(`₹${vendor.amountToPay.toFixed(2)} pay करने के बाद बैंक/UPI का UTR या Transaction Reference ID डालें:`);
+    if (!utr) return;
+
+    try {
+      setSettlingId(vendor.photographerId || vendor._id);
+      // Payout settlement API call
+      await API.post('/orders/admin-settle-vendor', {
+        vendorId: vendor.photographerId || vendor._id,
+        amount: vendor.amountToPay,
+        upiId: vendor.upiId,
+        transactionId: utr
+      });
+      alert(`₹${vendor.amountToPay.toFixed(2)} successfully settled with UTR: ${utr}`);
+      fetchAdminData();
+    } catch (err) {
+      alert(err.response?.data?.message || "Settlement failed");
+    } finally {
+      setSettlingId(null);
     }
   };
 
@@ -127,9 +156,9 @@ const AdminDashboard = () => {
 
   const statsCards = [
     { id: 1, name: 'Total Revenue', value: dbStats.totalRevenue, icon: <DollarSign size={22} />, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-    { id: 2, name: 'Active Users', value: `${dbStats.totalUsers} Nodes`, icon: <Users size={22} />, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
-    { id: 3, name: 'Total Photos', value: `${dbStats.totalPhotos} Assets`, icon: <Image size={22} />, color: 'text-purple-400', bg: 'bg-purple-500/10' },
-    { id: 4, name: 'Trending Now', value: `${dbStats.trendingPhotos} Items`, icon: <TrendingUp size={22} />, color: 'text-rose-400', bg: 'bg-rose-500/10' },
+    { id: 2, name: 'Active Users', value: `${dbStats.totalUsers || usersList.length} Nodes`, icon: <Users size={22} />, color: 'text-indigo-400', bg: 'bg-indigo-500/10' },
+    { id: 3, name: 'Total Photos', value: `${dbStats.totalPhotos || 0} Assets`, icon: <Image size={22} />, color: 'text-purple-400', bg: 'bg-purple-500/10' },
+    { id: 4, name: 'Trending Now', value: `${dbStats.trendingPhotos || 0} Items`, icon: <TrendingUp size={22} />, color: 'text-rose-400', bg: 'bg-rose-500/10' },
   ];
 
   const menuItems = [
@@ -269,13 +298,21 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* TAB 3: VENDOR PAYOUT CONTROL */}
+        {/* TAB 3: VENDOR PAYOUT CONTROL (UPDATED WITH PENDING REQUEST BADGE & CONDITIONAL APPROVE BUTTON) */}
         {activeTab === 'payouts' && (
           <div className="space-y-8 animate-fade-in">
-            <div>
-              <h2 className="text-2xl font-black text-white flex items-center gap-2">
-                Vendor Payout Ledger
-              </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-black text-white flex items-center gap-2">
+                  Vendor Payout Ledger
+                </h2>
+                <p className="text-xs text-slate-400 mt-1">
+                  क्रिएटर्स द्वारा भेजी गई विथड्रॉ रिक्वेस्ट्स (न्यूनतम सीमा: ₹100.00)।
+                </p>
+              </div>
+              <div className="bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-3 py-1.5 rounded-xl text-xs font-bold self-start flex items-center gap-1.5">
+                <AlertCircle size={14} /> Min Threshold: ₹100.00
+              </div>
             </div>
 
             <div className="overflow-x-auto bg-slate-900/20 border border-slate-900 rounded-2xl">
@@ -286,36 +323,90 @@ const AdminDashboard = () => {
                     <th className="p-4">UPI Wallet ID</th>
                     <th className="p-4 text-center">Photos Sold</th>
                     <th className="p-4 text-right">Gross Volume</th>
-                    <th className="p-4 text-right text-emerald-400">Net Amount to Pay (80%)</th>
+                    <th className="p-4 text-right text-emerald-400">Payable Amount</th>
+                    <th className="p-4 text-center">Status</th>
+                    <th className="p-4 text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-900/60 text-xs text-slate-300 font-semibold">
                   {adminReport.length === 0 ? (
                     <tr>
-                      <td colSpan="5" className="p-8 text-center text-slate-500 font-bold">अभी तक किसी भी वेंडर की कोई सेल दर्ज नहीं हुई है।</td>
+                      <td colSpan="7" className="p-8 text-center text-slate-500 font-bold">
+                        अभी तक किसी भी वेंडर की कोई सेल दर्ज नहीं हुई है।
+                      </td>
                     </tr>
                   ) : (
-                    adminReport.map((vendor, idx) => (
-                      <tr key={idx} className="hover:bg-slate-900/10 transition">
-                        <td className="p-4 font-bold">
-                          <div className="flex items-center gap-2">
-                            <User size={14} className="text-slate-500" />
-                            <div>
-                              <p className="text-white">{vendor.photographerName}</p>
-                              <p className="text-[10px] text-slate-400 font-normal">{vendor.photographerEmail}</p>
+                    adminReport.map((vendor, idx) => {
+                      const isEligible = vendor.amountToPay >= 100;
+                      const hasRequested = vendor.hasPendingRequest;
+                      const isSettling = settlingId === (vendor.photographerId || vendor._id);
+
+                      return (
+                        <tr key={idx} className={`transition ${hasRequested ? 'bg-indigo-950/20 hover:bg-indigo-950/30' : 'hover:bg-slate-900/10'}`}>
+                          <td className="p-4 font-bold">
+                            <div className="flex items-center gap-2">
+                              <User size={14} className="text-slate-500" />
+                              <div>
+                                <p className="text-white flex items-center gap-1.5">
+                                  {vendor.photographerName}
+                                  {hasRequested && (
+                                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" title="New Withdrawal Request"></span>
+                                  )}
+                                </p>
+                                <p className="text-[10px] text-slate-400 font-normal">{vendor.photographerEmail}</p>
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td className="p-4 font-mono text-slate-400">
-                          <span className="flex items-center gap-1">
-                            <CreditCard size={12} className="text-indigo-400" /> {vendor.upiId}
-                          </span>
-                        </td>
-                        <td className="p-4 text-center font-bold text-indigo-400">{vendor.totalPhotosSold} Pcs</td>
-                        <td className="p-4 text-right text-slate-500 font-bold">₹{vendor.totalSalesAmount.toFixed(2)}</td>
-                        <td className="p-4 text-right font-black text-emerald-400 text-sm">₹{vendor.amountToPay.toFixed(2)}</td>
-                      </tr>
-                    ))
+                          </td>
+                          <td className="p-4 font-mono text-slate-400">
+                            {vendor.upiId ? (
+                              <button 
+                                onClick={() => handleCopyUpi(vendor.upiId)}
+                                title="Click to copy UPI ID"
+                                className="flex items-center gap-1.5 hover:text-indigo-400 transition cursor-pointer"
+                              >
+                                <CreditCard size={12} className="text-indigo-400" /> 
+                                <span>{vendor.upiId}</span>
+                                <Copy size={11} className="text-slate-500" />
+                              </button>
+                            ) : (
+                              <span className="text-rose-400/80 text-[10px]">No UPI linked</span>
+                            )}
+                          </td>
+                          <td className="p-4 text-center font-bold text-indigo-400">{vendor.totalPhotosSold} Pcs</td>
+                          <td className="p-4 text-right text-slate-500 font-bold">₹{vendor.totalSalesAmount?.toFixed(2)}</td>
+                          <td className="p-4 text-right font-black text-emerald-400 text-sm">₹{vendor.amountToPay?.toFixed(2)}</td>
+                          <td className="p-4 text-center">
+                            {hasRequested ? (
+                              <span className="inline-flex items-center gap-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 px-2.5 py-1 rounded-md text-[10px] font-bold animate-pulse">
+                                🔔 Payout Requested
+                              </span>
+                            ) : isEligible ? (
+                              <span className="inline-flex items-center gap-1 bg-slate-800 text-slate-400 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                                No Request Yet
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 bg-rose-500/10 border border-rose-500/20 text-rose-400 px-2 py-0.5 rounded-md text-[10px] font-bold">
+                                &lt; ₹100 Limit
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-4 text-right">
+                            <button
+                              onClick={() => handleSettleVendor(vendor)}
+                              disabled={!hasRequested || !isEligible || isSettling || !vendor.upiId}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ml-auto cursor-pointer ${
+                                hasRequested && isEligible && vendor.upiId
+                                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md active:scale-95'
+                                  : 'bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed opacity-60'
+                              }`}
+                            >
+                              <Send size={11} /> 
+                              {isSettling ? 'Settling...' : hasRequested ? 'Approve & Pay' : 'Awaiting Request'}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
