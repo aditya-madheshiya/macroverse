@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
-import { Heart, ShoppingCart, Menu, X, LogOut, Shield, Compass, Upload } from 'lucide-react';
+import { Heart, ShoppingCart, Menu, X, LogOut, Shield, Compass, Upload, ArrowRight } from 'lucide-react';
 
 // लोगो इमेज का डायरेक्ट इम्पोर्ट
 import logo from '../assets/logo.png';
@@ -173,8 +173,19 @@ const Navbar = () => {
               )}
             </div>
 
-            {/* MOBILE MENU BUTTON (Smooth Rotation) */}
-            <div className="md:hidden flex items-center">
+            {/* 📱 MOBILE HEADER RIGHT (DIRECT CART + HAMBURGER BUTTON) */}
+            <div className="md:hidden flex items-center gap-2.5">
+              {/* Phone Bar Cart Icon */}
+              <button
+                onClick={() => handleIconClick('cart')}
+                className="p-2.5 text-slate-300 hover:text-white bg-slate-900 border border-slate-800 rounded-xl relative transition active:scale-90"
+                aria-label="Open Cart"
+              >
+                <ShoppingCart size={20} className="text-indigo-400" />
+                <span className="absolute top-1 right-1 bg-indigo-500 w-2 h-2 rounded-full border border-slate-950"></span>
+              </button>
+
+              {/* Hamburger Button */}
               <button 
                 onClick={() => setIsOpen(!isOpen)} 
                 className="p-2.5 text-slate-300 hover:text-white bg-slate-900 border border-slate-800 rounded-xl transition duration-300 cursor-pointer active:scale-90"
@@ -192,11 +203,36 @@ const Navbar = () => {
         {isOpen && (
           <div className="animate-menu-smooth absolute top-20 left-0 w-full bg-slate-950/98 backdrop-blur-3xl border-b border-slate-800/80 px-6 pt-5 pb-8 space-y-3 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.9)] z-50 md:hidden origin-top">
             
+            {/* 🛒 GO TO CART BUTTON (FEATURED IN DROPDOWN) */}
+            <button
+              onClick={() => handleIconClick('cart')}
+              style={{ animationDelay: '0.02s' }}
+              className="animate-item-stagger w-full flex items-center justify-between py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 text-white font-black text-sm shadow-lg shadow-indigo-600/30 active:scale-95 transition duration-200"
+            >
+              <div className="flex items-center gap-3">
+                <ShoppingCart size={18} />
+                <span>Go to Cart</span>
+              </div>
+              <ArrowRight size={16} className="text-indigo-200" />
+            </button>
+
+            {/* ❤️ WISHLIST BUTTON (MOBILE) */}
+            <button
+              onClick={() => handleIconClick('liked')}
+              style={{ animationDelay: '0.05s' }}
+              className="animate-item-stagger w-full flex items-center justify-between py-3 px-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 text-slate-200 hover:text-white hover:border-rose-500/50 active:bg-slate-800 transition duration-200"
+            >
+              <div className="flex items-center gap-3 text-sm font-bold">
+                <Heart size={18} className="text-rose-400" /> My Saved Wishlist
+              </div>
+              <ArrowRight size={15} className="text-slate-500" />
+            </button>
+
             <Link 
               to="/explore" 
               onClick={() => setIsOpen(false)} 
-              style={{ animationDelay: '0.04s' }}
-              className="animate-item-stagger flex items-center gap-3 py-3 px-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 text-slate-200 hover:text-white hover:border-indigo-500/50 active:bg-slate-800 transition duration-200"
+              style={{ animationDelay: '0.08s' }}
+              className="animate-item-stagger flex items-center gap-3 py-3 px-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 text-slate-200 hover:text-white hover:border-indigo-500/50 active:bg-slate-800 transition duration-200 text-sm font-bold"
             >
               <Compass size={18} className="text-indigo-400" /> Explore Gallery
             </Link>
@@ -204,8 +240,8 @@ const Navbar = () => {
             <Link 
               to="/upload" 
               onClick={() => setIsOpen(false)} 
-              style={{ animationDelay: '0.08s' }}
-              className="animate-item-stagger flex items-center gap-3 py-3 px-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 text-slate-200 hover:text-white hover:border-indigo-500/50 active:bg-slate-800 transition duration-200"
+              style={{ animationDelay: '0.11s' }}
+              className="animate-item-stagger flex items-center gap-3 py-3 px-3.5 rounded-xl bg-slate-900/60 border border-slate-800/80 text-slate-200 hover:text-white hover:border-indigo-500/50 active:bg-slate-800 transition duration-200 text-sm font-bold"
             >
               <Upload size={18} className="text-indigo-400" /> Sell Artwork
             </Link>
@@ -214,41 +250,41 @@ const Navbar = () => {
               <Link 
                 to="/admin" 
                 onClick={() => setIsOpen(false)} 
-                style={{ animationDelay: '0.12s' }}
-                className="animate-item-stagger flex items-center gap-3 py-3 px-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold active:bg-rose-500/20 transition duration-200"
+                style={{ animationDelay: '0.14s' }}
+                className="animate-item-stagger flex items-center gap-3 py-3 px-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 font-bold active:bg-rose-500/20 transition duration-200 text-sm"
               >
                 <Shield size={18} /> Admin Control Panel
               </Link>
             )}
             
             {!user ? (
-              <div style={{ animationDelay: '0.14s' }} className="animate-item-stagger grid grid-cols-2 gap-3 pt-3">
+              <div style={{ animationDelay: '0.16s' }} className="animate-item-stagger grid grid-cols-2 gap-3 pt-3">
                 <Link 
                   to="/login" 
                   onClick={() => setIsOpen(false)} 
-                  className="text-center py-3 text-slate-300 border border-slate-800 bg-slate-900/90 rounded-xl font-bold active:scale-95 hover:text-white transition duration-200"
+                  className="text-center py-3 text-slate-300 border border-slate-800 bg-slate-900/90 rounded-xl font-bold active:scale-95 hover:text-white transition duration-200 text-sm"
                 >
                   Login
                 </Link>
                 <Link 
                   to="/signup" 
                   onClick={() => setIsOpen(false)} 
-                  className="text-center py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-600/30 active:scale-95 hover:bg-indigo-500 transition duration-200"
+                  className="text-center py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg shadow-indigo-600/30 active:scale-95 hover:bg-indigo-500 transition duration-200 text-sm"
                 >
                   Sign Up
                 </Link>
               </div>
             ) : (
-              <div style={{ animationDelay: '0.14s' }} className="animate-item-stagger pt-3 space-y-2.5">
+              <div style={{ animationDelay: '0.16s' }} className="animate-item-stagger pt-3 space-y-2.5">
                 <button 
                   onClick={() => handleIconClick('dashboard')} 
-                  className="w-full text-center py-3.5 text-white bg-slate-900 border border-slate-800 rounded-xl font-bold block active:scale-95 hover:border-slate-700 transition duration-200"
+                  className="w-full text-center py-3.5 text-white bg-slate-900 border border-slate-800 rounded-xl font-bold block active:scale-95 hover:border-slate-700 transition duration-200 text-sm"
                 >
                   Open Dashboard
                 </button>
                 <button 
                   onClick={handleLogout} 
-                  className="w-full text-center py-3.5 bg-rose-950/40 border border-rose-900/30 text-rose-400 rounded-xl font-bold active:scale-95 hover:bg-rose-900/40 transition duration-200"
+                  className="w-full text-center py-3.5 bg-rose-950/40 border border-rose-900/30 text-rose-400 rounded-xl font-bold active:scale-95 hover:bg-rose-900/40 transition duration-200 text-sm"
                 >
                   Log Out
                 </button>
