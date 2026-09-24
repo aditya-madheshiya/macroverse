@@ -131,7 +131,6 @@ const Explore = () => {
             <Camera size={12} /> Macro Cluster Live Node
           </div>
           <h1 className="text-3xl md:text-5xl font-black text-white">Explore Microverse Gallery</h1>
-          <p className="text-slate-400 font-bold text-sm">डेटाबेस और Cloudinary से सिंक की गई असली सूक्ष्म तस्वीरें।</p>
         </div>
 
         {/* DYNAMIC FILTERS BAR */}

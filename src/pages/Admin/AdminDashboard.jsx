@@ -276,7 +276,6 @@ const AdminDashboard = () => {
               <h2 className="text-2xl font-black text-white flex items-center gap-2">
                 Vendor Payout Ledger
               </h2>
-              <p className="text-sm text-slate-400 mt-1">सभी फोटोग्राफर्स की कुल बिक्री और 20% प्लेटफॉर्म फीस कटने के बाद उन्हें दी जाने वाली राशि (80%) का live रिकॉर्ड।</p>
             </div>
 
             <div className="overflow-x-auto bg-slate-900/20 border border-slate-900 rounded-2xl">

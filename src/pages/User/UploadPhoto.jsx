@@ -62,7 +62,6 @@ const UploadPhoto = () => {
       <div className="max-w-2xl w-full bg-slate-900/60 border border-slate-900 p-8 rounded-3xl shadow-2xl">
         <div className="mb-8">
           <h1 className="text-2xl font-black text-white">Sell Your Macro Artwork</h1>
-          <p className="text-sm text-slate-400 mt-1">तस्वीर सीधे Cloudinary क्लाउड सर्वर पर सुरक्षित स्टोर की जाएगी।</p>
         </div>
 
         <form onSubmit={handleUpload} className="space-y-6 text-sm font-bold text-slate-300">
@@ -117,7 +116,7 @@ const UploadPhoto = () => {
           </div>
 
           <button type="submit" disabled={loading} className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-3.5 rounded-xl transition shadow-lg mt-4 cursor-pointer disabled:opacity-50">
-            {loading ? "Uploading to Cloudinary..." : "List Asset For Sale"}
+            {loading ? "Uploading..." : "List Asset For Sale"}
           </button>
         </form>
       </div>
