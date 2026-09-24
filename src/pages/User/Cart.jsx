@@ -139,7 +139,7 @@ const Cart = () => {
               setCartItems([]);
               setTotalPrice(0);
               alert("🎉 पेमेंट सफल रहा! आपके एसेट्स अनलॉक हो गए हैं।");
-              window.location.href = '/my-studio';
+              window.location.href = '/downloads';
             } else {
               alert("❌ पेमेंट वेरिफ़िकेशन फ़ेल हुआ: " + (verifyRes.data?.message || ""));
             }
